@@ -75,8 +75,9 @@ class Overlay:
         """关闭 GUI"""
         if self.is_running():
             self.send_command("quit")
-            self.process.join(timeout=1)
-            if self.process.is_alive():
+            if self.process:
+                self.process.join(timeout=1)
+            if self.process and self.process.is_alive():
                 self.process.terminate()
             self.process = None
             termcolor.cprint("[Overlay] Stopped.", "cyan")

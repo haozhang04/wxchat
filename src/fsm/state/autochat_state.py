@@ -1,13 +1,7 @@
 from ..base_state import BaseState
-from ..enums import AppState
-from src.core.ai_processor import process_with_ai
-from src.core.memory import ChatMemory
 from src.utils.auto_paste import perform_blue_box_action
 from src.text_processing.similarity import TextSimilarity
 from rich.console import Console
-import time
-import difflib
-
 from rich.panel import Panel
 
 console = Console()
@@ -54,7 +48,6 @@ class AutoChatState(BaseState):
         
         # 如果没有新内容，直接跳过
         if not new_content:
-             # 如果整体有变化但没有提取出有效新行（可能是 OCR 抖动），更新 last_ocr_text 以便下次比较
              if ocr_text: 
                  self.last_ocr_text = ocr_text
              return True
@@ -67,6 +60,8 @@ class AutoChatState(BaseState):
                 console.print(f"[dim]跳过疑似重复/自身发送的内容 ({reason})[/dim]")
                 self.last_ocr_text = ocr_text
                 return True
+                
+        console.print(Panel.fit(ocr_text, title="OCR 识别内容", border_style="dim"))
 
         # 2. Process valid new content
         self.last_ocr_text = ocr_text 
@@ -82,3 +77,8 @@ class AutoChatState(BaseState):
         
         # 3. AI Process
         ai_output = self.app.handle_chat_interaction(user_input=new_content, ocr_text=None)
+
+        if blue_box:
+            perform_blue_box_action(ai_output, blue_box)
+        elif not blue_box:
+             console.print("[red]错误: 未找到蓝色输入区域 (input_box)[/red]")

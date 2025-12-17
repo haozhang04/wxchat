@@ -3,11 +3,11 @@
         "rect": [
             673,
             203,
-            562,
-            469
+            1503,
+            458
         ],
         "color": "red",
-        "label": "red"
+        "label": "Response Region"
     },
     "input_box": {
         "rect": [
@@ -17,6 +17,6 @@
             50
         ],
         "color": "blue",
-        "label": "blue"
+        "label": "Input Box"
     }
 }

@@ -2,6 +2,7 @@ from ..base_state import BaseState
 from ..enums import AppState
 from src.core.ai_processor import process_with_ai
 from rich.console import Console
+from rich.panel import Panel
 
 console = Console()
 
@@ -28,6 +29,7 @@ class OcrProcessingState(BaseState):
             try:
                 if red_box:
                     ocr_text = self.text_recognizer.ocr_recognize_region(red_box)
+                    console.print(Panel.fit(ocr_text, title="OCR 识别内容", border_style="dim"))
                 else:
                     console.print("[red]错误: 未找到红色识别区域 (response_region)[/red]")
                     ocr_text = None
