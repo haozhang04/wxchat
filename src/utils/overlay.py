@@ -171,8 +171,8 @@ class OverlayApp(tk.Tk):
 
     def check_pipe(self):
         """监听主进程指令"""
-        while self.pipe_conn.poll():
-            try:
+        try:
+            while self.pipe_conn.poll():
                 msg = self.pipe_conn.recv()
                 cmd = msg.get("cmd")
                 payload = msg.get("payload")
@@ -192,8 +192,11 @@ class OverlayApp(tk.Tk):
                     self.edit_mode = payload.get("editing", False)
                     self.visible_regions = payload.get("visible_regions")
                     self.draw_ui()
-            except EOFError:
-                break
+        except (EOFError, OSError, BrokenPipeError):
+            # 管道断开，退出 overlay
+            self.destroy()
+            return
+            
         self.after(50, self.check_pipe)
 
     def draw_ui(self):

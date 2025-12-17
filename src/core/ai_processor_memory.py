@@ -5,10 +5,12 @@ from rich.markdown import Markdown
 from rich.live import Live
 from rich.spinner import Spinner
 from config import DEFAULT_MODEL, SYSTEM_PROMPT
+from src.core.memory import MemoryManager
+import json
 
 console = Console()
-
-def process_with_ai(user_prompt, ocr_text=None, model=DEFAULT_MODEL, history=None):
+memory_manager = MemoryManager()
+def process_with_ai(user_prompt, ocr_text=None, model=DEFAULT_MODEL):
     """
     使用模型处理 (流式输出)
     """
@@ -25,8 +27,8 @@ def process_with_ai(user_prompt, ocr_text=None, model=DEFAULT_MODEL, history=Non
         ]
         
         #2. 扩展历史消息
-        if history:
-             messages.extend(history)
+        if memory_manager:
+             messages.extend(memory_manager.get_context())
         
         #3. 构建当前用户消息
         user_msg = f"用户输入: {user_prompt}"
@@ -36,6 +38,9 @@ def process_with_ai(user_prompt, ocr_text=None, model=DEFAULT_MODEL, history=Non
             user_msg += f"\n\n[OCR 识别到的屏幕内容]:\n{ocr_text}"
             
         messages.append({'role': 'user', 'content': user_msg})
+
+        #打印总消息
+        console.print(Panel(json.dumps(messages, indent=2, ensure_ascii=False), title="总消息", border_style="green"))
 
         full_content = ""
         
@@ -48,6 +53,11 @@ def process_with_ai(user_prompt, ocr_text=None, model=DEFAULT_MODEL, history=Non
                 full_content += content
                 live.update(Panel(Markdown(full_content), title="AI 回复", border_style="cyan"))
         
+        # 5. 更新记忆
+        if memory_manager:
+            memory_manager.add_user_message(user_msg)
+            memory_manager.add_ai_message(full_content)
+            
         return full_content
         
     except Exception as e:

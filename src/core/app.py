@@ -8,7 +8,7 @@ from config import DEFAULT_MODEL
 from src.fsm import AppState, FSMManager
 from src.utils.overlay import Overlay
 from tools_pkg.RapidOCR import TextRecognizer
-from src.core.ai_processor import process_with_ai
+from src.core.ai_processor_memory import process_with_ai 
 
 console = Console()
 
@@ -55,7 +55,7 @@ class App:
             # 2. Check keyboard input
             if msvcrt.kbhit():
                 return input()
-                
+
             time.sleep(0.05)
                     
     def handle_chat_interaction(self, user_input=None, ocr_text=None):
