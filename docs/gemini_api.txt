@@ -1,0 +1,3 @@
+model name : gemini-3-pro-preview 
+setx GOOGLE_GEMINI_BASE_URL "https://arpanet.icu" 
+setx GEMINI_API_KEY "sk-xBOlEvewfD0esj5kvm1bwu8WjNsQlpawJ9Fls1sZgZ0vgDeI"

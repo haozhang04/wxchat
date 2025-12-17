@@ -1,0 +1,9 @@
+rich
+termcolor
+mss
+pyautogui
+pyperclip
+ollama
+pywin32
+pillow
+rapidocr-onnxruntime

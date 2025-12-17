@@ -1,0 +1,14 @@
+# 忽略 Python 的缓存目录
+__pycache__/
+
+.trae/
+
+.vscode/
+
+dist/
+
+build/
+
+uwrobot_gui.spec 
+
+logs/
