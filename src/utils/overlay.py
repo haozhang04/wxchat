@@ -162,8 +162,8 @@ class OverlayApp(tk.Tk):
         # 在子进程中也实例化一个 Config 对象，用于保存
         self.config_manager = ScreenRegionConfig()
         
-        self.edit_mode = True 
-        self.visible_regions = None # None means all visible
+        self.edit_mode = False 
+        self.visible_regions = [] # None means all visible, [] means none visible
         
         # 窗口设置
         self.title("Overlay")

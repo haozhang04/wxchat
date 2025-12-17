@@ -12,19 +12,7 @@ class BaseState(ABC):
         """Called when exiting the state"""
         pass
 
-    def change(self):
-        """
-        Called to handle state transition logic.
-        Returns:
-             AppState or None: The next state to transition to, or None to stay in current state.
-        """
-        return None
-
     @abstractmethod
     def run(self):
-        """
-        run the state logic. 
-        Returns:
-            bool: True to continue the application loop, False to exit.
-        """
+        """ run the state logic. """
         pass

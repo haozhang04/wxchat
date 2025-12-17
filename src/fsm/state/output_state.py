@@ -16,19 +16,16 @@ class OutputProcessingState(BaseState):
 
     def exit(self):
         # Restore overlay
-        self.overlay.update_state(False, self.app.ocr_enabled, visible_regions=None)
-
-    def change(self):
-        # Output is one-shot, always go back to IDLE_STATE
-        return AppState.IDLE_STATE
+        self.overlay.update_state(False, False, visible_regions=None)
 
     def run(self):
-        content = self.app.context_data.get('ai_content')
+        prompt_text = f"[green][{self.app.fsm_manager.current_state.name}][/green] User: "
+        user_input = self.app._get_input(prompt_text)
+        ai_output = self.app.handle_chat_interaction(user_input=user_input, ocr_text=None)
         blue_box = self.overlay.get_region_rect("input_box")
         
-        if content and blue_box:
-            perform_blue_box_action(content, blue_box)
+        if blue_box:
+            perform_blue_box_action(ai_output, blue_box)
         elif not blue_box:
              console.print("[red]错误: 未找到蓝色输入区域 (input_box)[/red]")
-        
-        return True
+

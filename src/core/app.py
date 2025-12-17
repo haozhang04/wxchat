@@ -16,42 +16,43 @@ console = Console()
 
 class App:
     def __init__(self):
-        self.fsm_manager = FSMManager(self)
-
         # 共享资源
         self.overlay = Overlay()
         self.text_recognizer = TextRecognizer()
+
+        self.fsm_manager = FSMManager(self)
 
         # Initialize default regions
         self.overlay.add_region("response_region", "red", "Response Region")
         self.overlay.add_region("input_box", "blue", "Input Box")
         
         self.current_model = DEFAULT_MODEL
-        self.command_queue = queue.Queue()
-        self.context_data = {}
+        self.ui_command = None
+        self.ocr_enabled = False
 
-    def post_command(self, cmd):
-        """允许外部来源（例如 UI 界面）发送指令到队列中。"""
-        self.command_queue.put(cmd)
+    def post_ui_command(self, cmd):
+        self.ui_command = cmd
 
-    def _get_input(self, prompt_text):
+    def _get_ui_cmd(self):
+        cmd = self.ui_command
+        self.ui_command = None
+        return cmd
+
+    def _get_input(self, prompt_text, expected_state=None):
         """
         自定义输入函数，用于同时等待：
         1. 终端键盘输入
-        2. 队列指令（来自 UI）
+        2. 状态切换（来自 UI）
         """
         console.print(prompt_text, end="")
         
         while True:
-            # 1. 检查队列
-            if not self.command_queue.empty():
-                cmd = self.command_queue.get()
-                console.print(f" [bold yellow][UI] {cmd}[/bold yellow]")
-                return cmd
+            # 1. Check UI command
+            if self.ui_command:
+                return None
 
-            # 2. 检查终端输入
+            # 2. Check terminal input
             if msvcrt.kbhit():
-                # 如果检测到用户开始打字，回退到标准的 input() 函数
                 try:
                     return input()
                 except EOFError:
@@ -67,10 +68,10 @@ class App:
         """
         # Process with AI
         try:
-            process_with_ai(user_input, ocr_text, model=self.current_model)
+            ai_output = process_with_ai(user_input, ocr_text, model=self.current_model)
         except KeyboardInterrupt:
             console.print("\n[bold yellow]AI 思考已打断[/bold yellow]")
-        return True
+        return ai_output
 
     # =========================================================================
     # Main Loop
@@ -89,7 +90,6 @@ class App:
         self.overlay.start()
         
         try:
-            self.fsm_manager.switch_state(AppState.IDLE_STATE)
             while True:
                 # run current state logic
                 if not self.fsm_manager.run_current_state():

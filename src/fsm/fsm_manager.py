@@ -1,4 +1,5 @@
 from typing import Dict, Optional
+from rich.console import Console
 from .enums import AppState, FSMMode
 from .base_state import BaseState
 from .state.idle_state import IdleState
@@ -7,6 +8,7 @@ from .state.output_state import OutputProcessingState
 from .state.autochat_state import AutoChatState
 from .state.edit_state import EditState
 
+console = Console()
 
 class FSMManager:
     def __init__(self, app):
@@ -19,50 +21,46 @@ class FSMManager:
             AppState.EDIT_STATE: EditState(app)
         }
         self.current_state_handler: Optional[BaseState] = self.states[AppState.IDLE_STATE]
-        self.current_state_enum: AppState = AppState.IDLE_STATE
+        self.current_state: AppState = AppState.IDLE_STATE
+        self.next_state: Optional[AppState] = None
         self.mode = FSMMode.NORMAL
-        self.next_state_enum: Optional[AppState] = None
 
-    def switch_state(self, new_state_enum: AppState):
-        """Switch the application state."""
-        if new_state_enum in self.states:
-            if self.current_state_handler:
-                self.current_state_handler.exit()
-            
-            self.current_state_handler = self.states[new_state_enum]
-            self.current_state_enum = new_state_enum
-            self.current_state_handler.enter()
+    def change(self):
+        cmd = self.app._get_ui_cmd()
+        if cmd == 'exit':
+            return AppState.EXIT
+        elif cmd == 'edit':
+            return AppState.EDIT_STATE
+        elif cmd == 'ocr':
+            return AppState.OCR_STATE
+        elif cmd == 'autochat':
+            return AppState.AUTOCHAT_STATE
+        elif cmd == 'output':
+            return AppState.OUTPUT_STATE
+        elif cmd == 'idle':
+            return AppState.IDLE_STATE
+        return None
 
     def run_current_state(self) -> bool:
         """run the logic of the current state."""
-        if self.current_state_handler:
-            
-            if self.mode == FSMMode.NORMAL:
-                # 1. Run Logic
-                keep_running = self.current_state_handler.run()
-                if not keep_running:
-                    return False
+        if self.mode == FSMMode.NORMAL:
+            # 1. Run Logic
+            self.current_state_handler.run()
+        
+            # 2. Check Transition
+            next_state = self.change()
+            if next_state and next_state != self.current_state:
+                self.mode = FSMMode.CHANGE
+                self.next_state = next_state
                 
-                # 2. Check Transition
-                next_state = self.current_state_handler.change()
-                if next_state and next_state != self.current_state_enum:
-                    self.mode = FSMMode.CHANGE
-                    self.next_state_enum = next_state
-                    # print(f"Switched from {self.current_state_enum.name} to {self.next_state_enum.name}")
-            
-            elif self.mode == FSMMode.CHANGE:
-                if self.next_state_enum and self.next_state_enum in self.states:
-                    if self.current_state_handler:
-                        self.current_state_handler.exit()
-                    
-                    self.current_state_handler = self.states[self.next_state_enum]
-                    self.current_state_enum = self.next_state_enum
-                    self.current_state_handler.enter()
-                    
-                    self.mode = FSMMode.NORMAL
-                    self.current_state_handler.run()
-                else:
-                    self.mode = FSMMode.NORMAL
+        elif self.mode == FSMMode.CHANGE:
+            self.current_state_handler.exit()
+            if self.next_state == AppState.EXIT:
+                return False
+            self.current_state_handler = self.states[self.next_state]
+            self.current_state = self.next_state
+            self.current_state_handler.enter()
+            self.mode = FSMMode.NORMAL
+            console.print(f"[bold yellow][FSM] Switched from[/bold yellow] [bold magenta]{self.current_state.name}[/bold magenta] [bold yellow]to[/bold yellow] [bold magenta]{self.next_state.name}[/bold magenta]")
 
-            return True
-        return False
+        return True

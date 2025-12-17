@@ -16,71 +16,35 @@ class AutoChatState(BaseState):
     def __init__(self, app):
         super().__init__(app)
         self.last_ocr_text = None
-        self.memory = ChatMemory()
         self.overlay = self.app.overlay
         self.text_recognizer = self.app.text_recognizer
 
     def enter(self):
-        # self.app.current_state_enum is already updated
-        self.last_ocr_text = None
         # 当刚进入AutoChat时，初始化last_ocr_text为当前的屏幕内容，
-        # 这样可以避免一开始就处理屏幕上已有的内容。
         try:
             red_box = self.overlay.get_region_rect("response_region")
             if red_box:
-                img = self.text_recognizer.capture_region(red_box)
-                self.last_ocr_text = self.text_recognizer.extract_text(img, filter_right=True)
-                console.print(f"[dim]初始化基准内容 ({len(self.last_ocr_text) if self.last_ocr_text else 0} 字符)[/dim]")
+                self.last_ocr_text = self.text_recognizer.ocr_recognize_region(red_box, filter_right=True)
+                console.print(f"[dim]初始化当前的屏幕内容 ({len(self.last_ocr_text) if self.last_ocr_text else 0} 字符)[/dim]")
         except Exception:
             pass
-            
-        console.print("[bold yellow]进入 AutoChat 模式 [/bold yellow]")
 
     def exit(self):
         self.overlay.update_state(False, False, visible_regions=None)
-        # self.app.autochat_running = False # Handled by UI or stop condition
-
-    def change(self):
-        # 检查是否有外部命令要求退出
-        if not self.app.command_queue.empty():
-             cmd = self.app.command_queue.queue[0] # Peek
-             
-             if cmd == "exit_autochat" or cmd == "chat":
-                 self.app.command_queue.get() # Consume
-                 return AppState.IDLE_STATE
-             elif cmd == "edit":
-                 self.app.command_queue.get()
-                 return AppState.EDIT_STATE
-             elif cmd == "ocr_processing":
-                 self.app.command_queue.get()
-                 return AppState.OCR_STATE
-             elif cmd == "output":
-                 self.app.command_queue.get()
-                 self.app.post_command('output') # Re-queue for IDLE_STATE
-                 return AppState.IDLE_STATE
-                 
-        return None
 
     def run(self):
-        # Reload config
-        self.overlay.reload_config()
-        # self.app.update_rects() # Removed: State fetches directly
-        
+
         red_box = self.overlay.get_region_rect("response_region")
         blue_box = self.overlay.get_region_rect("input_box")
 
         if not red_box or not blue_box:
             console.print("[red]错误:[/red] 请使用覆盖层设置区域。")
-            return False # Stop running
+            return False 
 
         # 1. OCR Step
-        # Update overlay to show both red and blue box
-        self.overlay.update_state(False, True, visible_regions=['response_region', 'input_box'])
-        
         ocr_text = None
         try:
-            img = self.text_recognizer.capture_region(red_box)
-            ocr_text = self.text_recognizer.extract_text(img, filter_right=True)
+            ocr_text = self.text_recognizer.ocr_recognize_region(red_box, filter_right=True)
         except Exception as e:
             console.print(f"[red]OCR 出错: {e}[/red]")
 
@@ -92,7 +56,6 @@ class AutoChatState(BaseState):
              # 如果整体有变化但没有提取出有效新行（可能是 OCR 抖动），更新 last_ocr_text 以便下次比较
              if ocr_text: 
                  self.last_ocr_text = ocr_text
-             time.sleep(0.1)
              return True
 
         # 去重检查：防止识别到自己刚才发送的消息 (检查 new_content)
@@ -101,12 +64,11 @@ class AutoChatState(BaseState):
             
             if is_dup:
                 console.print(f"[dim]跳过疑似重复/自身发送的内容 ({reason})[/dim]")
-                # 即使跳过了，也要更新 last_ocr_text，因为屏幕确实变了（变成了机器人的回复）
                 self.last_ocr_text = ocr_text
                 return True
 
         # 2. Process valid new content
-        self.last_ocr_text = ocr_text # 更新基准
+        self.last_ocr_text = ocr_text 
         
         # 关键词过滤 (ROS)
         # 检查是否包含 ros 关键词 (模糊匹配，且不匹配 rose 等昵称)
@@ -115,49 +77,7 @@ class AutoChatState(BaseState):
         #     console.print(f"[dim]忽略: 内容未包含 'ros' 关键词前缀[/dim] {clean_msg}")
         #     return True
             
-        console.print(f"[bold green]发现新内容 (包含关键词)，开始处理...[/bold green]")
         console.print(Panel.fit(new_content, title="新增识别内容", border_style="dim"))
         
         # 3. AI Process
-        try:
-            # 获取上下文 (不包含当前消息)
-            history = self.memory.get_context()
-            
-            # 打印当前记忆 (Debug)
-            console.print(Panel(
-                "\n".join([f"[bold {'green' if m['role']=='user' else 'cyan'}]{m['role']}:[/] {m['content']}" for m in history]),
-                title="当前对话记忆 (Context)",
-                border_style="yellow",
-                expand=False
-            ))
-
-            content = process_with_ai("请根据屏幕内容进行回复", new_content, console, model=self.app.current_model, history=history)
-            
-            if content:
-                    # 存入用户消息 (完成对话后才存入记忆)
-                    self.memory.add_user_message(new_content)
-                    # 存入AI回复
-                    self.memory.add_ai_message(content)
-
-                    # 4. Output
-                    # Show blue box
-                    self.overlay.update_state(False, True, visible_regions=['input_box'])
-                    perform_blue_box_action(content, self.app.blue_box)
-                    
-                    # 保存发送的内容用于去重
-                    if hasattr(self.app, 'last_sent_msg'):
-                        self.app.last_sent_msg = content
-
-        except Exception as e:
-            console.print(f"[red]AI 处理出错: {e}[/red]")
-
-        # Sleep
-        try:
-            time.sleep(0.2)
-        except KeyboardInterrupt:
-            # Catch Ctrl+C inside the loop and exit cleanly
-            console.print("\n[bold yellow]AutoChat 循环已停止 (Ctrl+C)[/bold yellow]")
-            self.app.autochat_running = False
-        
-        return True
-
+        ai_output = self.app.handle_chat_interaction(user_input=new_content, ocr_text=None)

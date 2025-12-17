@@ -20,8 +20,8 @@ class MainUI:
         self._init_components()
         
         # Start overlay process
-        self.app.overlay_manager.start()
-        self.app.overlay_manager.update_state(False, False)
+        self.app.overlay.start()
+        self.app.overlay.update_state(False, False, visible_regions=[])
 
     def _init_components(self):
         # Top Frame: Settings
@@ -40,29 +40,26 @@ class MainUI:
         ctrl_frame.pack(fill=tk.X, padx=10, pady=5)
         
         # Buttons Grid
-        self.btn_edit = ttk.Button(ctrl_frame, text="Edit Regions", command=self._toggle_edit)
-        self.btn_edit.grid(row=0, column=0, padx=5, pady=5, sticky="ew")
-        
-        self.btn_lock = ttk.Button(ctrl_frame, text="Lock Regions", command=self._lock_regions)
-        self.btn_lock.grid(row=0, column=1, padx=5, pady=5, sticky="ew")
-        
-        self.btn_ocr = ttk.Button(ctrl_frame, text="Toggle OCR", command=self._toggle_ocr)
-        self.btn_ocr.grid(row=1, column=0, padx=5, pady=5, sticky="ew")
-        
-        self.btn_autochat = ttk.Button(ctrl_frame, text="Start AutoChat", command=self._toggle_autochat)
-        self.btn_autochat.grid(row=1, column=1, padx=5, pady=5, sticky="ew")
+        # Row 0: IDLE | EDIT
+        self.btn_chat = ttk.Button(ctrl_frame, text="Chat", command=self._trigger_chat)
+        self.btn_chat.grid(row=0, column=0, padx=5, pady=5, sticky="ew")
 
-        # Output Button
+        self.btn_edit = ttk.Button(ctrl_frame, text="Edit Regions", command=self._toggle_edit_mode)
+        self.btn_edit.grid(row=0, column=1, padx=5, pady=5, sticky="ew")
+        
+        # Row 1: OUTPUT | OCR
         self.btn_output = ttk.Button(ctrl_frame, text="Output Mode", command=self._trigger_output)
-        self.btn_output.grid(row=2, column=0, columnspan=1, padx=5, pady=5, sticky="ew")
+        self.btn_output.grid(row=1, column=0, padx=5, pady=5, sticky="ew")
 
-        # Chat Button
-        self.btn_chat = ttk.Button(ctrl_frame, text="Chat / Run", command=self._trigger_chat)
-        self.btn_chat.grid(row=2, column=1, columnspan=1, padx=5, pady=5, sticky="ew")
+        self.btn_ocr = ttk.Button(ctrl_frame, text="Toggle OCR", command=self._trigger_ocr)
+        self.btn_ocr.grid(row=1, column=1, padx=5, pady=5, sticky="ew")
+        
+        # Row 2: AUTOCHAT | EXIT
+        self.btn_autochat = ttk.Button(ctrl_frame, text="Start AutoChat", command=self._toggle_autochat)
+        self.btn_autochat.grid(row=2, column=0, padx=5, pady=5, sticky="ew")
 
-        # Exit Button
-        self.btn_exit = ttk.Button(ctrl_frame, text="Exit App", command=self._on_exit)
-        self.btn_exit.grid(row=3, column=0, columnspan=2, padx=5, pady=10, sticky="ew")
+        self.btn_exit = ttk.Button(ctrl_frame, text="Exit App", command=self._trigger_exit)
+        self.btn_exit.grid(row=2, column=1, padx=5, pady=5, sticky="ew")
         
         # Configure grid weights
         ctrl_frame.columnconfigure(0, weight=1)
@@ -78,51 +75,45 @@ class MainUI:
         self.app.set_model(model)
         
     def _toggle_edit_mode(self):
-        if self.app.fsm_manager.current_state_enum == AppState.EDIT_STATE:
-             # Already in Edit mode, do nothing
+        if self.app.fsm_manager.current_state == AppState.EDIT_STATE:
              return
-        
-        self.app.post_command("edit")
-        self.status_var.set("Status: EDIT_STATEING")
+        self.app.post_ui_command("edit")
+        self.status_var.set("Status: EDIT_STATE")
         
     def _trigger_ocr(self):
-        if self.app.fsm_manager.current_state_enum == AppState.OCR_STATE:
+        if self.app.fsm_manager.current_state == AppState.OCR_STATE:
              return
-             
-        self.app.post_command("ocr_processing")
+        self.app.post_ui_command("ocr")
         self.status_var.set("Status: OCR_STATE")
         
     def _toggle_autochat(self):
-        if self.app.fsm_manager.current_state_enum == AppState.AUTOCHAT_STATE:
+        if self.app.fsm_manager.current_state == AppState.AUTOCHAT_STATE:
              return
-
-        self.app.post_command("autochat")
+        self.app.post_ui_command("autochat")
         self.status_var.set("Status: AUTOCHAT_STATE")
         print("[UI] AutoChat start command sent.")
             
     def _trigger_output(self):
-        if self.app.fsm_manager.current_state_enum == AppState.OUTPUT_STATE:
+        if self.app.fsm_manager.current_state == AppState.OUTPUT_STATE:
             return
-        self.app.post_command("output")
+        self.app.post_ui_command("output")
         print("[UI] Output command sent to terminal.")
 
     def _trigger_chat(self):
-        if self.app.fsm_manager.current_state_enum == AppState.IDLE_STATE:
+        if self.app.fsm_manager.current_state == AppState.IDLE_STATE:
             return
-        self.app.post_command("chat")
+        self.app.post_ui_command("idle")
         print("[UI] Chat command sent to terminal.")
 
-    def _on_exit(self):
+    def _trigger_exit(self):
         # Stop overlay first
+        self.app.post_ui_command("exit")
         self.app.overlay.stop()
         os._exit(0)
 
     def run(self):
-        # Start the App's CLI loop in a separate thread
-        # This allows the UI to stay responsive
         cli_thread = threading.Thread(target=self.app.run, daemon=True)
         cli_thread.start()
-        
         try:
             self.root.mainloop()
         except KeyboardInterrupt:
