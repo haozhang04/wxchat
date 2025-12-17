@@ -85,11 +85,10 @@ class Overlay:
         """[接口] 切换编辑模式"""
         self.send_command("toggle_edit", enabled)
 
-    def update_state(self, editing: bool, ocr_enabled: bool, visible_regions: list = None):
+    def update_state(self, editing: bool, visible_regions: list = None):
         """
         [接口] 更新状态
         :param editing: 是否开启编辑模式
-        :param ocr_enabled: (未使用，保留接口兼容)
         :param visible_regions: 可见区域列表 (None 表示全部可见)
         """
         self.send_command("update_state", {

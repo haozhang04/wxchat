@@ -12,11 +12,11 @@ class OutputProcessingState(BaseState):
 
     def enter(self):
         # Show Blue box (input_box)
-        self.overlay.update_state(False, True, visible_regions=['input_box'])
+        self.overlay.update_state(False, visible_regions=['input_box'])
 
     def exit(self):
         # Restore overlay
-        self.overlay.update_state(False, False, visible_regions=None)
+        self.overlay.update_state(False, visible_regions=None)
 
     def run(self):
         prompt_text = f"[green][{self.app.fsm_manager.current_state.name}][/green] User: "

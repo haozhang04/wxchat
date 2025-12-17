@@ -4,6 +4,7 @@ import numpy as np
 from PIL import Image
 from rapidocr_onnxruntime import RapidOCR
 from rich.console import Console
+from rich.panel import Panel
 
 console = Console()
 
@@ -71,7 +72,7 @@ class TextRecognizer:
             
             # 4.join text lines
             ocr_text = "\n".join(text_lines).strip()
-            console.print(f"[green]OCR 识别成功 ({len(ocr_text)} 字符) 用时 {elapse:.4f} 秒[/green]")
+            console.print(f"[green]OCR 识别成功 ({len(ocr_text)} 字符) 用时 {elapse} 秒[/green]")
             console.print(Panel.fit(ocr_text, title="OCR 识别内容", border_style="dim"))
 
             return ocr_text

@@ -28,10 +28,13 @@ class App:
         
         self.current_model = DEFAULT_MODEL
         self.ui_command = None
-        self.ocr_enabled = False
 
     def post_ui_command(self, cmd):
         self.ui_command = cmd
+
+    def set_model(self, model_name):
+        self.current_model = model_name
+        console.print(f"[green][APP] Model switched to: {model_name}[/green]")
 
     def _get_ui_cmd(self):
         cmd = self.ui_command
@@ -78,12 +81,14 @@ class App:
     # =========================================================================
     def run(self):
         """Start the application main loop."""
-        menu_content = f"""模型: [bold]{DEFAULT_MODEL}[/bold]
+        menu_content = f"""
+        [bold magenta]模型: {DEFAULT_MODEL}[/bold magenta]
         [bold yellow]Enter[/bold yellow] : 捕获并识别
         [bold cyan]edit[/bold cyan]  : 调整框位置
         [bold red]exit[/bold red]  : 退出程序
         [bold magenta]Ctrl+C[/bold magenta]: 打断 AI 思考
-        [bold magenta]Ctrl+D[/bold magenta]: 强制退出 (Windows 上可能需要 Ctrl+Z + Enter)"""
+        [bold magenta]Ctrl+D or Ctrl+Z + Enter[/bold magenta]: 强制退出
+        """
         console.print(Panel(menu_content, title="AI", expand=False, border_style="bold magenta"))
         
         # Start global services

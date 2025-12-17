@@ -1,22 +1,22 @@
 {
     "response_region": {
         "rect": [
-            837,
-            137,
-            1620,
-            299
+            673,
+            203,
+            562,
+            469
         ],
         "color": "red",
-        "label": "Response Region"
+        "label": "red"
     },
     "input_box": {
         "rect": [
-            556,
-            609,
-            439,
-            93
+            699,
+            713,
+            368,
+            50
         ],
         "color": "blue",
-        "label": "Input Box"
+        "label": "blue"
     }
 }

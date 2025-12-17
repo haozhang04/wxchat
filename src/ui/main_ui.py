@@ -21,7 +21,7 @@ class MainUI:
         
         # Start overlay process
         self.app.overlay.start()
-        self.app.overlay.update_state(False, False, visible_regions=[])
+        self.app.overlay.update_state(False, visible_regions=[])
 
     def _init_components(self):
         # Top Frame: Settings

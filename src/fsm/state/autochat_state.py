@@ -20,6 +20,7 @@ class AutoChatState(BaseState):
         self.text_recognizer = self.app.text_recognizer
 
     def enter(self):
+        self.overlay.update_state(False)
         # 当刚进入AutoChat时，初始化last_ocr_text为当前的屏幕内容，
         try:
             red_box = self.overlay.get_region_rect("response_region")
@@ -30,7 +31,7 @@ class AutoChatState(BaseState):
             pass
 
     def exit(self):
-        self.overlay.update_state(False, False, visible_regions=None)
+        self.overlay.update_state(False, visible_regions=[])
 
     def run(self):
 
