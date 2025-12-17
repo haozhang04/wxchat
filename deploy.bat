@@ -26,7 +26,7 @@ git commit -m "Ui update %timestamp%"
 
 echo.
 echo %Yellow%[3/4] Pushing to remote...%Reset%
-git push
+git push origin main
 if %errorlevel% neq 0 (
     echo.
     echo %Red%Error: Git push failed.%Reset%
