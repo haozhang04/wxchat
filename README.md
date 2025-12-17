@@ -1,146 +1,119 @@
-# 水下机器人GUI控制系统 (UWBot GUI)
+# Gemini AI Assistant
+一个基于大语言模型的智能终端助手，集成了屏幕 OCR 识别、上下文记忆管理和多模态交互功能。它能够“看见”你的屏幕内容，并基于此进行智能对话。
 
-一个基于PyQt5开发的水下机器人控制界面系统，提供实时监控、运动控制、摄像头管理和数据可视化功能。
+## 🌟 核心特性
 
-2025年12月15日 初始版本发布。
+- **🤖 多模型支持**: 无缝集成 Ollama，支持 Qwen2.5, GLM-4, DeepSeek 等多种开源大模型，支持流式输出。
+- **🧠 智能记忆管理**: 
+  - **自动记录**: 完整记录对话历史。
+  - **自动压缩**: 独创的记忆压缩算法，当对话过长时，自动调用 AI 生成**中文摘要**，在保留关键信息的同时无限延长对话轮次。
+- **👁️ 屏幕 OCR**: 内置 RapidOCR，支持截取屏幕指定区域并提取文字，实现“所见即所问”。
+- **🎮 状态机架构**: 基于 FSM (有限状态机) 设计，支持多种工作模式（闲置、编辑、OCR、自动对话等）的流畅切换。
+- **🎨 沉浸式终端 UI**: 使用 `rich` 库打造的现代化终端界面，支持 markdown 渲染、加载动画和彩色日志。
+- **⚡ 高效交互**: 支持全局覆盖层 (Overlay) 指示，提供快捷键操作。
 
-## 功能特性
+## 🚀 快速开始
 
-- 🎮 **运动控制**: 实时控制水下机器人的运动状态
-- 📹 **摄像头管理**: 支持多摄像头实时预览、录制和截图
-- 📊 **数据可视化**: 实时显示机器人状态数据和传感器信息
-- 📝 **日志系统**: 完整的系统日志记录和查看
-- ⚙️ **参数配置**: 灵活的系统参数设置和管理
-- 🔄 **实时通信**: 与水下机器人的低延迟数据通信
-- 🌐 **LCM通信**: 基于LCM(Lightweight Communications and Marshalling)的实时通信
-- 🎯 **多模式控制**: 支持简单模式和控制模式切换
-- 📐 **3D可视化**: URDF机器人模型的3D显示
+### 1. 环境准备
 
-## 环境要求
+- **Python**: 3.8 或更高版本。
+- **Ollama**: 请确保本地或远程服务器已安装并运行 [Ollama](https://ollama.com/)。
 
-- **操作系统**: Windows 10/11 或 Linux
-- **Python 版本**: 3.9 (推荐)
-- **依赖管理**: 推荐使用 Anaconda 或 Miniconda
-
-## 安装与运行
-
-### 1. 克隆项目
+### 2. 安装
 
 ```bash
-git clone https://gitee.com/haozhang04/uwbot_gui.git
-cd uwbot_gui
-```
+# 克隆项目
+git clone <repository_url>
+cd gemini
 
-### 2. 环境配置 (推荐使用 Conda)
-
-由于项目依赖对版本有特定要求（如 `networkx`, `PyOpenGL`, `numpy` 等），强烈建议使用 Conda 创建隔离环境。
-
-```bash
-# 创建名为 ui 的环境，指定 python 3.9
-conda create -n ui python=3.9 -y
-
-# 激活环境
-conda activate ui
-```
-
-### 3. 安装依赖
-
-```bash
+# 安装依赖
 pip install -r requirements.txt
 ```
 
-> **注意**: 
-> - `requirements.txt` 中已锁定关键库的版本（如 `networkx==2.2`, `PyOpenGL==3.1.0`, `numpy<2.0`），请勿随意升级，否则可能导致 URDF 可视化功能失效。
-> - LCM 通信库已包含在依赖列表中。
+### 3. 配置
 
-### 4. 运行程序
+项目根目录下的 `config.py` 是核心配置文件，你可以根据需要修改：
+
+```python
+# config.py
+
+# Ollama 服务地址
+BASE_URL = "http://localhost:11434"
+
+# 默认使用的模型 (需确保 Ollama 已拉取该模型)
+DEFAULT_MODEL = "qwen2.5-coder:14b"
+
+# 系统提示词 (设定 AI 的人设)
+SYSTEM_PROMPT = "..."
+```
+
+### 4. 运行
 
 ```bash
 python main.py
 ```
 
-### 5. 打包程序 (可选)
+## 📖 使用指南
 
-如果需要将程序打包为独立可执行文件，请使用 `PyInstaller`。
+程序启动后会进入 **IDLE (闲置)** 状态，终端会显示操作菜单。
 
-首先安装 PyInstaller：
-```bash
-pip install pyinstaller
+### 常用指令
+
+| 指令/按键 | 功能 | 说明 |
+| :--- | :--- | :--- |
+| **Enter** | **捕获并识别** | 截取当前蓝色框内的屏幕内容，进行 OCR 识别并发送给 AI。 |
+| **edit** | **调整区域** | 进入编辑模式，调整屏幕截图区域的位置和大小。 |
+| **autochat** | **自动对话** | 进入自动对话模式 (FSM 状态)。 |
+| **exit** | **退出** | 退出程序。 |
+| **Ctrl+C** | **中断** | 打断当前的 AI 生成或退出当前状态。 |
+
+### 记忆管理系统详解
+
+Gemini AI Assistant 并不是简单地丢弃旧消息，而是采用了一种更智能的策略：
+
+1.  **阈值触发**: 当对话历史超过设定的阈值 (默认为 20 条) 时。
+2.  **智能摘要**: 系统提取最早的一半历史记录，发送给 AI 要求生成一份**中文摘要**。
+3.  **上下文注入**: 这份摘要会作为 System Prompt 的一部分注入到新的对话中。
+4.  **无感体验**: 用户感知不到记忆的丢失，但 AI 却能一直保持对上下文的理解。
+
+*调试提示: 当触发记忆压缩时，控制台会显示黄色的 "记忆压缩 Prompt" 面板。*
+
+## 🛠️ 项目结构
+
+```
+gemini/
+├── src/
+│   ├── core/
+│   │   ├── ai_processor_memory.py  # AI 交互核心 (含记忆逻辑)
+│   │   ├── memory.py               # 记忆管理器 (实现自动压缩)
+│   │   ├── app.py                  # 应用主逻辑
+│   │   └── ...
+│   ├── fsm/                        # 有限状态机
+│   │   ├── fsm_manager.py          # 状态管理器
+│   │   └── state/                  # 各个状态实现 (Idle, OCR, Edit 等)
+│   ├── ui/                         # UI 组件
+│   ├── utils/                      # 工具类 (Overlay 等)
+│   └── text_processing/            # 文本处理
+├── config.py                       # 配置文件
+├── main.py                         # 程序入口
+├── requirements.txt                # 依赖列表
+└── README.md                       # 说明文档
 ```
 
-**Windows 系统:**
-```bash
-pyinstaller --noconfirm --clean --onefile --windowed --name uwrobot_gui --add-data "resource;resource" --hidden-import PyQt5.QtSvg --hidden-import lcm main.py
-```
+## 🔧 常见问题
 
-**Linux 系统:**
-```bash
-pyinstaller --noconfirm --clean --onefile --windowed --name uwrobot_gui --add-data "resource:resource" --hidden-import PyQt5.QtSvg --hidden-import lcm main.py
-```
+**Q: 报错 `ConnectionRefusedError`?**
+A: 请检查 Ollama 服务是否已启动，且 `config.py` 中的 `BASE_URL` 配置正确。
 
-## 项目结构
+**Q: OCR 识别率低?**
+A: 请确保截取区域清晰，且文字大小适中。RapidOCR 对标准字体的识别效果最好。
 
-```
-uwbot_gui/
-├── main.py                 # 主程序入口：负责初始化主窗口、LCM通信、定时器等
-├── requirements.txt        # 项目依赖清单
-├── config/                 # 配置模块
-│   └── uwbot_config.py     # 核心配置文件（网络、相机、运动参数等）
-├── ui_modules/             # UI界面模块
-│   ├── bar/                # 顶部状态栏（显示电池、连接状态、模式等）
-│   ├── camera/             # 摄像头显示组件（支持RTSP流、录制、截图）
-│   ├── log_mode/           # 日志查看界面
-│   ├── simple_mode/        # 简易模式主界面
-│   │   ├── motion/         # 运动控制组件（浮游/轮式控制、清洗功能）
-│   │   └── status/         # 状态显示组件（姿态、深度、速度等）
-│   └── viewer_mode/        # 3D可视化界面（基于OpenGL显示URDF模型）
-├── messages/               # 数据结构定义
-│   ├── LowlevelCmd.py      # 下发指令数据类
-│   ├── LowlevelState.py    # 反馈状态数据类
-│   └── robot_data.py       # 全局机器人数据模型
-├── input_dev/              # 输入设备驱动
-│   ├── camera/             # 摄像头后台采集线程与视频录制
-│   ├── keyboard/           # 键盘事件处理
-│   ├── Joystick/           # 游戏手柄驱动（支持双摇杆）
-│   └── button/             # 外部物理按钮驱动（串口通信）
-├── LCM/                    # 通信模块
-│   ├── lcm.py              # LCM通信接口封装（收发线程管理）
-│   └── lcm_type/           # 自动生成的LCM消息类型定义
-├── utils/                  # 通用工具库
-│   ├── urdf_loader/        # URDF模型加载与3D渲染引擎
-│   └── math_tool.py        # 数学工具（四元数/欧拉角转换等）
-├── resource/               # 静态资源
-│   ├── images/             # UI图标和图片资源
-│   ├── material/           # 说明文档与辅助脚本
-│   └── robot_description/  # 机器人URDF描述文件与STL模型
-└── .gitignore              # Git忽略配置
-```
+**Q: 如何切换模型?**
+A: 修改 `config.py` 中的 `DEFAULT_MODEL`，或者在代码中扩展模型切换逻辑。
 
-## 分支说明
+## 📝 许可证
 
-- `1080p_real`: 开发分支
-- `1080p稳定`: 主线分支，稳定版本（推荐）
-- `1080p_max`、`1080p_old`、`2k`: 历史或其他显示配置
+本项目采用 [MIT License](LICENSE) 许可证。
 
-## 开发说明
-
-### 代码规范
-- 使用 Python PEP 8 代码规范
-- 所有函数和类都应包含详细的中文注释
-- 提交代码前请运行测试确保功能正常
-
-### 贡献指南
-1. Fork 本项目
-2. 创建功能分支 (`git checkout -b feature/AmazingFeature`)
-3. 提交更改 (`git commit -m 'Add some AmazingFeature'`)
-4. 推送到分支 (`git push origin feature/AmazingFeature`)
-5. 创建 Pull Request
-
-## 许可证
-
-本项目采用 MIT 许可证
-
-## 联系方式
-
-- 项目维护者: HAO ZHANG
-- 项目链接: [https://gitee.com/haozhang04/uwbot_gui](https://gitee.com/haozhang04/uwbot_gui)
+---
+*Built with ❤️ by Gemini AI Assistant Team*

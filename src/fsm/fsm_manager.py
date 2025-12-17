@@ -54,6 +54,7 @@ class FSMManager:
                 self.next_state = next_state
                 
         elif self.mode == FSMMode.CHANGE:
+            console.print(f"[bold yellow][FSM] Switched from[/bold yellow] [bold magenta]{self.current_state.name}[/bold magenta] [bold yellow]to[/bold yellow] [bold magenta]{self.next_state.name}[/bold magenta]")
             self.current_state_handler.exit()
             if self.next_state == AppState.EXIT:
                 return False
@@ -61,6 +62,5 @@ class FSMManager:
             self.current_state = self.next_state
             self.current_state_handler.enter()
             self.mode = FSMMode.NORMAL
-            console.print(f"[bold yellow][FSM] Switched from[/bold yellow] [bold magenta]{self.current_state.name}[/bold magenta] [bold yellow]to[/bold yellow] [bold magenta]{self.next_state.name}[/bold magenta]")
 
         return True
