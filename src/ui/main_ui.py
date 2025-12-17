@@ -44,21 +44,21 @@ class MainUI:
         self.btn_chat = ttk.Button(ctrl_frame, text="Chat", command=self._trigger_chat)
         self.btn_chat.grid(row=0, column=0, padx=5, pady=5, sticky="ew")
 
-        self.btn_edit = ttk.Button(ctrl_frame, text="Edit Regions", command=self._toggle_edit_mode)
+        self.btn_edit = ttk.Button(ctrl_frame, text="Edit_Regions", command=self._toggle_edit_mode)
         self.btn_edit.grid(row=0, column=1, padx=5, pady=5, sticky="ew")
         
         # Row 1: OUTPUT | OCR
-        self.btn_output = ttk.Button(ctrl_frame, text="Output Mode", command=self._trigger_output)
+        self.btn_output = ttk.Button(ctrl_frame, text="Output", command=self._trigger_output)
         self.btn_output.grid(row=1, column=0, padx=5, pady=5, sticky="ew")
 
-        self.btn_ocr = ttk.Button(ctrl_frame, text="Toggle OCR", command=self._trigger_ocr)
+        self.btn_ocr = ttk.Button(ctrl_frame, text="OCR", command=self._trigger_ocr)
         self.btn_ocr.grid(row=1, column=1, padx=5, pady=5, sticky="ew")
         
         # Row 2: AUTOCHAT | EXIT
-        self.btn_autochat = ttk.Button(ctrl_frame, text="Start AutoChat", command=self._toggle_autochat)
+        self.btn_autochat = ttk.Button(ctrl_frame, text="AutoChat", command=self._toggle_autochat)
         self.btn_autochat.grid(row=2, column=0, padx=5, pady=5, sticky="ew")
 
-        self.btn_exit = ttk.Button(ctrl_frame, text="Exit App", command=self._trigger_exit)
+        self.btn_exit = ttk.Button(ctrl_frame, text="Exit", command=self._trigger_exit)
         self.btn_exit.grid(row=2, column=1, padx=5, pady=5, sticky="ew")
         
         # Configure grid weights
@@ -91,24 +91,22 @@ class MainUI:
              return
         self.app.post_ui_command("autochat")
         self.status_var.set("Status: AUTOCHAT_STATE")
-        print("[UI] AutoChat start command sent.")
             
     def _trigger_output(self):
         if self.app.fsm_manager.current_state == AppState.OUTPUT_STATE:
             return
         self.app.post_ui_command("output")
-        print("[UI] Output command sent to terminal.")
+        self.status_var.set("Status: OUTPUT_STATE")
 
     def _trigger_chat(self):
         if self.app.fsm_manager.current_state == AppState.IDLE_STATE:
             return
         self.app.post_ui_command("idle")
-        print("[UI] Chat command sent to terminal.")
+        self.status_var.set("Status: IDLE_STATE")
 
     def _trigger_exit(self):
         # Stop overlay first
         self.app.post_ui_command("exit")
-        self.app.overlay.stop()
         os._exit(0)
 
     def run(self):

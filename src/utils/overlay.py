@@ -82,10 +82,6 @@ class Overlay:
             self.process = None
             termcolor.cprint("[Overlay] Stopped.", "cyan")
 
-    def toggle_edit(self, enabled: bool):
-        """[接口] 切换编辑模式"""
-        self.send_command("toggle_edit", enabled)
-
     def update_state(self, editing: bool, visible_regions: list = None):
         """
         [接口] 更新状态
@@ -96,17 +92,6 @@ class Overlay:
             "editing": editing,
             "visible_regions": visible_regions
         })
-
-    def get_region_rect(self, key):
-        """
-        [接口] 获取指定区域的坐标 [x, y, w, h]
-        如果区域不存在或格式不正确，返回 None
-        """
-        if key in self.regions:
-            val = self.regions[key]
-            if isinstance(val, dict) and "rect" in val:
-                return val["rect"]
-        return None
 
     def reload_config(self):
         """[接口] 重新加载配置文件"""
@@ -201,9 +186,6 @@ class OverlayApp(tk.Tk):
                 elif cmd == "remove_region":
                     if payload["key"] in self.regions:
                         del self.regions[payload["key"]]
-                    self.draw_ui()
-                elif cmd == "toggle_edit":
-                    self.edit_mode = payload
                     self.draw_ui()
                 elif cmd == "update_state":
                     # payload: {"editing": bool, "visible_regions": list|None}

@@ -81,4 +81,4 @@ class AutoChatState(BaseState):
         if blue_box:
             perform_blue_box_action(ai_output, blue_box)
         elif not blue_box:
-             console.print("[red]错误: 未找到蓝色输入区域 (input_box)[/red]")
+            console.print("[red]错误: 未找到蓝色输入区域 (input_box)[/red]")

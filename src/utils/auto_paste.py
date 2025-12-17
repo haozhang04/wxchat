@@ -13,7 +13,7 @@ def perform_blue_box_action(text, region):
     """
     在蓝色框区域执行操作：点击 -> 粘贴 -> 回车
     """
-    offset = random.uniform(-5, 5)
+    offset = random.uniform(-10, 10)
 
     # 计算中心点
     cx = region[0] + region[2] // 2 + offset
@@ -34,8 +34,7 @@ def perform_blue_box_action(text, region):
     
     # 点击
     pyautogui.click()
-    random_sleep()
-    
+
     # 粘贴文本
     pyautogui.hotkey('ctrl', 'v')
     random_sleep()

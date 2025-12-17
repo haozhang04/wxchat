@@ -82,7 +82,7 @@ class TextSimilarity:
         if last_suffix in norm_ocr:
              return True, "包含消息后缀"
 
-        if ratio > 0.85: # 建议提高阈值到 0.85
+        if ratio > 0.80:
             return True, f"相似度过高 ({ratio:.2f})"
 
         return False, ""
