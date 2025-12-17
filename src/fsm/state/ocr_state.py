@@ -1,5 +1,5 @@
 from ..base_state import BaseState
-from ..fsm_manager import AppState
+from ..enums import AppState
 from src.core.ai_processor import process_with_ai
 from rich.console import Console
 
@@ -9,24 +9,32 @@ class OcrProcessingState(BaseState):
     def __init__(self, app):
         super().__init__(app)
         self.next_state = None
+        self.overlay = self.app.overlay
+        self.text_recognizer = self.app.text_recognizer
 
     def enter(self):
-        # self.app.current_state_enum is already updated
-        self.app.overlay_manager.update_state(False, True, visible_regions=['response_region'])
+        self.overlay.update_state(False, True, visible_regions=['response_region', 'input_box'])
         self.next_state = None
 
     def exit(self):
-        pass
+        # Hide boxes when leaving
+        self.overlay.update_state(False, False, visible_regions=None)
 
     def change(self):
         return self.next_state
 
     def run(self):
         ocr_text = None
+        red_box = self.overlay.get_region_rect("response_region")
+        
         with console.status("[bold red]正在捕获屏幕并识别文本...[/bold red]"):
             try:
-                img = self.app.text_recognizer.capture_region(self.app.red_box)
-                ocr_text = self.app.text_recognizer.extract_text(img)
+                if red_box:
+                    img = self.text_recognizer.capture_region(red_box)
+                    ocr_text = self.text_recognizer.extract_text(img)
+                else:
+                    console.print("[red]错误: 未找到红色识别区域 (response_region)[/red]")
+                    ocr_text = None
                 
                 if ocr_text:
                     self.app.context_data['ocr_text'] = ocr_text
@@ -46,12 +54,12 @@ class OcrProcessingState(BaseState):
                 
                 if content:
                     self.app.context_data['ai_content'] = content
-                    self.next_state = AppState.OUTPUT_PROCESSING
+                    self.next_state = AppState.OUTPUT_STATE
                 else:
-                    self.next_state = AppState.IDLE
+                    self.next_state = AppState.IDLE_STATE
                     
         except KeyboardInterrupt:
             console.print("\n[bold yellow]AI 思考已打断[/bold yellow]")
-            self.next_state = AppState.IDLE
+            self.next_state = AppState.IDLE_STATE
 
         return True

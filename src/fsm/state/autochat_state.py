@@ -1,5 +1,5 @@
 from ..base_state import BaseState
-from ..fsm_manager import AppState
+from ..enums import AppState
 from src.core.ai_processor import process_with_ai
 from src.core.memory import ChatMemory
 from src.utils.auto_paste import perform_blue_box_action
@@ -17,17 +17,19 @@ class AutoChatState(BaseState):
         super().__init__(app)
         self.last_ocr_text = None
         self.memory = ChatMemory()
+        self.overlay = self.app.overlay
+        self.text_recognizer = self.app.text_recognizer
 
     def enter(self):
         # self.app.current_state_enum is already updated
-        self.app.autochat_running = True
         self.last_ocr_text = None
         # 当刚进入AutoChat时，初始化last_ocr_text为当前的屏幕内容，
         # 这样可以避免一开始就处理屏幕上已有的内容。
         try:
-            if self.app.red_box:
-                img = self.app.text_recognizer.capture_region(self.app.red_box)
-                self.last_ocr_text = self.app.text_recognizer.extract_text(img, filter_right=True)
+            red_box = self.overlay.get_region_rect("response_region")
+            if red_box:
+                img = self.text_recognizer.capture_region(red_box)
+                self.last_ocr_text = self.text_recognizer.extract_text(img, filter_right=True)
                 console.print(f"[dim]初始化基准内容 ({len(self.last_ocr_text) if self.last_ocr_text else 0} 字符)[/dim]")
         except Exception:
             pass
@@ -35,34 +37,50 @@ class AutoChatState(BaseState):
         console.print("[bold yellow]进入 AutoChat 模式 [/bold yellow]")
 
     def exit(self):
-        self.app.overlay_manager.update_state(False, self.app.ocr_enabled, visible_regions=None)
+        self.overlay.update_state(False, False, visible_regions=None)
+        # self.app.autochat_running = False # Handled by UI or stop condition
 
     def change(self):
-        if not self.app.autochat_running:
-            return AppState.IDLE
+        # 检查是否有外部命令要求退出
+        if not self.app.command_queue.empty():
+             cmd = self.app.command_queue.queue[0] # Peek
+             
+             if cmd == "exit_autochat" or cmd == "chat":
+                 self.app.command_queue.get() # Consume
+                 return AppState.IDLE_STATE
+             elif cmd == "edit":
+                 self.app.command_queue.get()
+                 return AppState.EDIT_STATE
+             elif cmd == "ocr_processing":
+                 self.app.command_queue.get()
+                 return AppState.OCR_STATE
+             elif cmd == "output":
+                 self.app.command_queue.get()
+                 self.app.post_command('output') # Re-queue for IDLE_STATE
+                 return AppState.IDLE_STATE
+                 
         return None
 
     def run(self):
-        # Check if stopped externally
-        if not self.app.autochat_running:
-            return True
-
         # Reload config
-        self.app.overlay_manager.reload_config()
-        self.app.update_rects()
-        if not self.app.red_box or not self.app.blue_box:
+        self.overlay.reload_config()
+        # self.app.update_rects() # Removed: State fetches directly
+        
+        red_box = self.overlay.get_region_rect("response_region")
+        blue_box = self.overlay.get_region_rect("input_box")
+
+        if not red_box or not blue_box:
             console.print("[red]错误:[/red] 请使用覆盖层设置区域。")
-            self.app.autochat_running = False
-            return True
+            return False # Stop running
 
         # 1. OCR Step
-        # Update overlay to show only red box
-        self.app.overlay_manager.update_state(False, True, visible_regions=['response_region'])
+        # Update overlay to show both red and blue box
+        self.overlay.update_state(False, True, visible_regions=['response_region', 'input_box'])
         
         ocr_text = None
         try:
-            img = self.app.text_recognizer.capture_region(self.app.red_box)
-            ocr_text = self.app.text_recognizer.extract_text(img, filter_right=True)
+            img = self.text_recognizer.capture_region(red_box)
+            ocr_text = self.text_recognizer.extract_text(img, filter_right=True)
         except Exception as e:
             console.print(f"[red]OCR 出错: {e}[/red]")
 
@@ -123,7 +141,7 @@ class AutoChatState(BaseState):
 
                     # 4. Output
                     # Show blue box
-                    self.app.overlay_manager.update_state(False, True, visible_regions=['input_box'])
+                    self.overlay.update_state(False, True, visible_regions=['input_box'])
                     perform_blue_box_action(content, self.app.blue_box)
                     
                     # 保存发送的内容用于去重
@@ -140,7 +158,6 @@ class AutoChatState(BaseState):
             # Catch Ctrl+C inside the loop and exit cleanly
             console.print("\n[bold yellow]AutoChat 循环已停止 (Ctrl+C)[/bold yellow]")
             self.app.autochat_running = False
-            self.app.fsm_manager.switch_state(AppState.IDLE)
         
         return True
 

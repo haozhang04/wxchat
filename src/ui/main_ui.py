@@ -1,8 +1,9 @@
 import tkinter as tk
 from tkinter import ttk
 import threading
-import sys
-from src.core.app import GeminiApp
+import os
+from src.core.app import App
+from src.fsm import AppState
 from config import TARGET_MODELS
 
 class MainUI:
@@ -68,7 +69,7 @@ class MainUI:
         ctrl_frame.columnconfigure(1, weight=1)
 
         # Status Label
-        self.status_var = tk.StringVar(value="Status: IDLE")
+        self.status_var = tk.StringVar(value="Status: IDLE_STATE")
         self.lbl_status = ttk.Label(self.root, textvariable=self.status_var, foreground="blue")
         self.lbl_status.pack(side=tk.BOTTOM, fill=tk.X, padx=10, pady=5)
 
@@ -76,54 +77,44 @@ class MainUI:
         model = self.model_var.get()
         self.app.set_model(model)
         
-    def _toggle_edit(self):
-        self.app.overlay_manager.update_state(True, self.app.ocr_enabled)
-        self.status_var.set("Status: EDITING")
-        print("[UI] Switched to Edit Mode")
+    def _toggle_edit_mode(self):
+        if self.app.fsm_manager.current_state_enum == AppState.EDIT_STATE:
+             # Already in Edit mode, do nothing
+             return
         
-    def _lock_regions(self):
-        self.app.overlay_manager.update_state(False, self.app.ocr_enabled)
-        self.status_var.set("Status: LOCKED")
-        print("[UI] Regions Locked")
+        self.app.post_command("edit")
+        self.status_var.set("Status: EDIT_STATEING")
         
-    def _toggle_ocr(self):
-        self.app.ocr_enabled = not self.app.ocr_enabled
-        state = "ON" if self.app.ocr_enabled else "OFF"
-        print(f"[UI] OCR Enabled: {state}")
-        self.app.overlay_manager.update_state(False, self.app.ocr_enabled)
+    def _trigger_ocr(self):
+        if self.app.fsm_manager.current_state_enum == AppState.OCR_STATE:
+             return
+             
+        self.app.post_command("ocr_processing")
+        self.status_var.set("Status: OCR_STATE")
         
     def _toggle_autochat(self):
-        # 如果当前正在运行 autochat，则尝试停止
-        if self.app.autochat_running:
-            self.app.stop_autochat()
-            self.btn_autochat.config(text="Start AutoChat")
-            self.status_var.set("Status: IDLE")
-            print("[UI] AutoChat stop signal sent.")
-        else:
-            # Send command to CLI loop
-            self.app.post_command("autochat")
-            # Update UI optimistically (though loop will confirm)
-            self.app.autochat_running = True
-            self.btn_autochat.config(text="Stop AutoChat")
-            self.status_var.set("Status: AUTO_CHAT (Waiting for CLI...)")
-            print("[UI] AutoChat start command sent to terminal.")
+        if self.app.fsm_manager.current_state_enum == AppState.AUTOCHAT_STATE:
+             return
+
+        self.app.post_command("autochat")
+        self.status_var.set("Status: AUTOCHAT_STATE")
+        print("[UI] AutoChat start command sent.")
             
     def _trigger_output(self):
+        if self.app.fsm_manager.current_state_enum == AppState.OUTPUT_STATE:
+            return
         self.app.post_command("output")
         print("[UI] Output command sent to terminal.")
 
     def _trigger_chat(self):
+        if self.app.fsm_manager.current_state_enum == AppState.IDLE_STATE:
+            return
         self.app.post_command("chat")
         print("[UI] Chat command sent to terminal.")
 
     def _on_exit(self):
-        # We also need to stop the app thread if possible, or let it die with the process
-        # Using os._exit to force kill all threads
-        
         # Stop overlay first
-        self.app.overlay_manager.stop()
-        
-        import os
+        self.app.overlay.stop()
         os._exit(0)
 
     def run(self):

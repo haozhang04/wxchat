@@ -12,7 +12,6 @@ TARGET_MODELS = [
     "gpt-oss:120b-cloud",    
     "gpt-oss:20b-cloud",         
     "qwen2.5-coder:14b",         
-    "glm-4.6:cloud"
 ]
 
 # 默认使用的文本模型

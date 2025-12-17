@@ -97,6 +97,17 @@ class Overlay:
             "visible_regions": visible_regions
         })
 
+    def get_region_rect(self, key):
+        """
+        [接口] 获取指定区域的坐标 [x, y, w, h]
+        如果区域不存在或格式不正确，返回 None
+        """
+        if key in self.regions:
+            val = self.regions[key]
+            if isinstance(val, dict) and "rect" in val:
+                return val["rect"]
+        return None
+
     def reload_config(self):
         """[接口] 重新加载配置文件"""
         new_regions = self.config_manager.load()

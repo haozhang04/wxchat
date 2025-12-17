@@ -1,4 +1,4 @@
-from .fsm_manager import AppState
+from .enums import AppState, FSMMode
 from .base_state import BaseState
 from .fsm_manager import FSMManager
 from .state.idle_state import IdleState

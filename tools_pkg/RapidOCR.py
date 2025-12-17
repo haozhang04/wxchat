@@ -73,12 +73,21 @@ class TextRecognizer:
             ocr_text = "\n".join(text_lines).strip()
             console.print(f"[green]OCR 识别成功 ({len(ocr_text)} 字符) 用时 {elapse:.4f} 秒[/green]")
             console.print(Panel.fit(ocr_text, title="OCR 识别内容", border_style="dim"))
-            
+
             return ocr_text
             
         except Exception as e:
             console.print(f"[red]RapidOCR 识别失败: {e}[/red]")
             return ""
+
+    def ocr_recognize_region(self, region, filter_right=False):
+        """
+        识别指定区域的文本
+        region: [x, y, w, h]
+        filter_right: 是否过滤掉右侧文本（通常是自己发送的消息）
+        """
+        img = self.capture_region(region)
+        return self.extract_text(img, filter_right)
 
     def save_debug_image(self, img, filename="latest_ocr.png"):
         """保存用于OCR的图像到 screenshot 文件夹"""
