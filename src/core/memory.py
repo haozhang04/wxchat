@@ -6,7 +6,7 @@ from rich.panel import Panel
 console = Console()
 
 class MemoryManager:
-    def __init__(self, max_len=2):
+    def __init__(self, max_len=10):
         self.history = []  
         self.max_len = max_len
         self.summary = ""
